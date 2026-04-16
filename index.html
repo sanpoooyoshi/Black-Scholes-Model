@@ -50,6 +50,26 @@
       </div>
     </section>
 
+    <!-- 行使価格別オプション価格テーブル -->
+    <section>
+      <div class="glass-panel p-4 rounded-2xl border border-gray-100 shadow-md">
+        <h2 class="text-base font-semibold mb-3 text-indigo-800 border-b pb-2">行使価格別 オプション価格一覧 <span class="text-xs font-normal text-gray-400">(現在値±3000 / 500円刻み)</span></h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-center">
+            <thead>
+              <tr class="bg-indigo-50 text-indigo-800">
+                <th class="py-2 px-3 font-semibold rounded-tl-lg">行使価格 (K)</th>
+                <th class="py-2 px-3 font-semibold text-blue-700">コール価格</th>
+                <th class="py-2 px-3 font-semibold text-red-700 rounded-tr-lg">プット価格</th>
+              </tr>
+            </thead>
+            <tbody id="strike-table-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- パラメータ入力 -->
     <section>
       <div class="glass-panel p-5 rounded-2xl border border-gray-100 shadow-md">

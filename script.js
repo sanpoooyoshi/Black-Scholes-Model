@@ -64,6 +64,9 @@ function updateCalculationAndChart() {
     document.getElementById('call-price').textContent = result.call.toFixed(2);
     document.getElementById('put-price').textContent  = result.put.toFixed(2);
 
+    // 行使価格テーブルの更新（現在値 ±3000、500円刻み）
+    renderStrikeTable(S_val, K_val, T, r, sigma);
+
     // グラフ用データ生成
     const range_width = parseFloat(document.getElementById('range_width').value) || 3000;
     const rangeMin = Math.floor((S_val - range_width) / 100) * 100;
@@ -79,6 +82,38 @@ function updateCalculationAndChart() {
     }
 
     renderChart(labels, callData, putData, S_val, step);
+}
+
+/**
+ * 行使価格別オプション価格テーブルの描画
+ * 現在値 ±3000 の範囲を 500 円刻みで表示する
+ */
+function renderStrikeTable(S_val, K_val, T, r, sigma) {
+    const tbody = document.getElementById('strike-table-body');
+    if (!tbody) return;
+
+    // 500円刻みに丸めた現在値を基準にする
+    const base = Math.round(S_val / 500) * 500;
+    const TABLE_RANGE = 3000;
+    const STEP = 500;
+
+    const rows = [];
+    for (let k = base - TABLE_RANGE; k <= base + TABLE_RANGE; k += STEP) {
+        const p = calculateBlackScholes(S_val, k, T, r, sigma);
+        // 選択中の行使価格に最も近い行をハイライト
+        const isSelected = Math.abs(k - K_val) < STEP / 2;
+        const rowClass = isSelected
+            ? 'bg-indigo-100 font-bold text-indigo-900'
+            : (k % 1000 === 0 ? 'bg-gray-50' : '');
+        rows.push(`
+            <tr class="${rowClass} border-t border-gray-100">
+                <td class="py-2 px-3">${k.toLocaleString('ja-JP')}</td>
+                <td class="py-2 px-3 text-blue-700">${p.call.toFixed(2)}</td>
+                <td class="py-2 px-3 text-red-700">${p.put.toFixed(2)}</td>
+            </tr>
+        `);
+    }
+    tbody.innerHTML = rows.join('');
 }
 
 /**
