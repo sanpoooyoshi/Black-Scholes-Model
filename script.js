@@ -98,7 +98,7 @@ function renderStrikeTable(S_val, K_val, T, r, sigma) {
     const STEP = 500;
 
     const rows = [];
-    for (let k = base - TABLE_RANGE; k <= base + TABLE_RANGE; k += STEP) {
+    for (let k = base + TABLE_RANGE; k >= base - TABLE_RANGE; k -= STEP) {
         const p = calculateBlackScholes(S_val, k, T, r, sigma);
         // 選択中の行使価格に最も近い行をハイライト
         const isSelected = Math.abs(k - K_val) < STEP / 2;
