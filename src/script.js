@@ -317,10 +317,14 @@ async function fetchInstitutionalSentiment(filename = '') {
     if (errorEl) errorEl.classList.add('hidden');
     if (loadingEl) loadingEl.classList.remove('hidden');
 
-    // filenameがあればクエリパラメータで渡す
+    // サーバーの場所を特定（現在実行中のホストを使用。GitHub Pages の場合は localhost への接続試行も行う）
+    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? '' // 同一ホスト
+        : 'http://localhost:9001'; // ローカルPC外（スマホWiFiなど）からの場合は明示的にポート指定
+
     const url = filename
-        ? `http://localhost:9001/api/sentiment?filename=${encodeURIComponent(filename)}`
-        : 'http://localhost:9001/api/sentiment';
+        ? `${baseUrl}/api/sentiment?filename=${encodeURIComponent(filename)}`
+        : `${baseUrl}/api/sentiment`;
 
     try {
         const response = await fetch(url);
@@ -433,7 +437,8 @@ async function fetchInstitutionalSentiment(filename = '') {
     } catch (err) {
         console.error('Failed to fetch sentiment:', err);
         loadingEl.classList.add('hidden');
-        errorEl.textContent = 'データの取得に失敗しました。バックエンドが起動しているか確認してください。';
+        errorEl.innerHTML = '<div class="text-indigo-800 font-bold mb-1">分析サーバーと接続できません</div>' + 
+                           '<p class="text-[10px] text-gray-500">PCの電源がオフ、またはサーバーが起動していないため、価格計算機能（基本電卓）のみが利用可能です。</p>';
         errorEl.classList.remove('hidden');
     }
 }
@@ -444,10 +449,9 @@ async function fetchInstitutionalSentiment(filename = '') {
  * /api/files からファイル一覧を取得してセレクトボックスを構築する
  */
 async function loadFileList() {
-    const sel = document.getElementById('file-selector');
-    if (!sel) return;
+    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'http://localhost:9001';
     try {
-        const res = await fetch('http://localhost:9001/api/files');
+        const res = await fetch(`${baseUrl}/api/files`);
         const data = await res.json();
         sel.innerHTML = '';
         const files = data.files || [];
@@ -540,8 +544,9 @@ function updateStrikeChart(strikeDist) {
  * 時系列トレンドグラフを取得・描画する
  */
 async function fetchTrendingData() {
+    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'http://localhost:9001';
     try {
-        const res = await fetch('http://localhost:9001/api/timeseries');
+        const res = await fetch(`${baseUrl}/api/timeseries`);
         if (!res.ok) return;
         const data = await res.json();
         const ts = data.timeseries || [];
@@ -668,12 +673,9 @@ async function fetchOIDistribution() {
     contentEl.classList.add('hidden');
     errorEl.classList.add('hidden');
 
-    // タイムアウト付きのフェッチ
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒でタイムアウト
-
+    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'http://localhost:9001';
     try {
-        const response = await fetch('/api/oi_distribution', { signal: controller.signal });
+        const response = await fetch(`${baseUrl}/api/oi_distribution`, { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (!response.ok) {
@@ -693,12 +695,18 @@ async function fetchOIDistribution() {
     } catch (error) {
         clearTimeout(timeoutId);
         console.error('Error fetching OI data:', error);
+        
         let msg = '通信エラーまたはタイムアウト';
-        if (error.name === 'AbortError') msg = 'リクエストがタイムアウトしました。Excelファイルが巨大か、サーバーが混雑している可能性があります。';
-        else if (error.message) msg = error.message;
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            msg = '現在、分析サーバー（PC）がオフの状態です。計算機能のみ利用可能です。';
+        } else if (error.name === 'AbortError') {
+            msg = 'リクエストがタイムアウトしました。';
+        } else if (error.message) {
+            msg = error.message;
+        }
 
         if (errorEl) {
-            errorEl.innerHTML = `<p class="font-bold">OIデータの取得に失敗しました</p><p class="mt-1">${msg}</p>`;
+            errorEl.innerHTML = `<div class="text-indigo-800 font-bold mb-1">分析データが利用できません</div><p class="text-[10px] text-gray-500">${msg}</p>`;
             errorEl.classList.remove('hidden');
         }
         loadingEl.classList.add('hidden');

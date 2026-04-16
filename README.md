@@ -31,8 +31,14 @@ python main.py
 起動後、ブラウザで [http://localhost:9001/src/index.html](http://localhost:9001/src/index.html) にアクセスしてください。
 
 ## スマートフォンでの利用方法
-PCと同じ Wi-Fi に接続したスマートフォンで、PCの IP アドレスを使ってアクセスできます。
-（ダッシュボード最上部に表示される接続情報を参照してください）
+
+### 1. PCと同じ Wi-Fi で利用する場合（フル機能）
+PCの IP アドレスを使ってアクセスできます。ダッシュボード最上部に表示される接続情報を参照してください。
+
+### 2. 外出先やPCがオフの状態で利用する場合（電卓機能のみ）
+GitHub Pages を有効にすることで、以下の URL からいつでも価格計算機能を利用できます。
+**URL**: [https://sanpoooyoshi.github.io/Black-Scholes-Model/src/index.html](https://sanpoooyoshi.github.io/Black-Scholes-Model/src/index.html)
+※PCがオフの時は、分析データ（OI分布等）の更新は行われませんが、電卓機能は正常に動作します。
 
 ## 免責事項
 本アプリケーションは投資助言を行うものではありません。計算結果や分析内容の正確性は保証されず、投資判断は自己責任で行ってください。
