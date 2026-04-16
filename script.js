@@ -102,14 +102,15 @@ function renderStrikeTable(S_val, K_val, T, r, sigma) {
         const p = calculateBlackScholes(S_val, k, T, r, sigma);
         // 選択中の行使価格に最も近い行をハイライト
         const isSelected = Math.abs(k - K_val) < STEP / 2;
-        const rowClass = isSelected
-            ? 'bg-indigo-100 font-bold text-indigo-900'
-            : (k % 1000 === 0 ? 'bg-gray-50' : '');
+        const rowBg = isSelected
+            ? 'background:#e0e7ff;font-weight:700;'
+            : (k % 1000 === 0 ? 'background:#f9fafb;' : '');
+        const cellBase = 'padding:10px 14px;border-top:1px solid #f0f0f0;font-size:14px;';
         rows.push(`
-            <tr class="${rowClass} border-t border-gray-100">
-                <td class="py-2.5 px-4 text-left font-mono text-sm">${k.toLocaleString('ja-JP')}</td>
-                <td class="py-2.5 px-4 text-right text-blue-700 font-semibold">${p.call.toFixed(2)}</td>
-                <td class="py-2.5 px-4 text-right text-red-700 font-semibold">${p.put.toFixed(2)}</td>
+            <tr style="${rowBg}">
+                <td style="${cellBase}font-family:monospace;text-align:left;">${k.toLocaleString('ja-JP')}</td>
+                <td style="${cellBase}text-align:right;color:#1d4ed8;font-weight:600;">${p.call.toFixed(2)}</td>
+                <td style="${cellBase}text-align:right;color:#b91c1c;font-weight:600;">${p.put.toFixed(2)}</td>
             </tr>
         `);
     }
