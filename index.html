@@ -3,68 +3,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>日経225 オプション価格計算 (ブラックショールズ・モデル)</title>
+  <title>日経225 オプション価格計算</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     .glass-panel {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(10px);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -1px rgba(0,0,0,.05);
     }
+    /* 数値入力をスマホで大きく、押しやすく */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+      font-size: 16px; /* iOS でズームしないように 16px 以上 */
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      opacity: 1;
+      height: 28px;
+    }
+    /* テーブルの行のホバー */
+    #strike-table-body tr:hover { background-color: rgba(99,102,241,0.06); }
   </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 text-gray-800">
-  <div class="max-w-7xl mx-auto space-y-6">
+<body class="min-h-screen p-3 md:p-8 text-gray-800">
+  <div class="max-w-2xl mx-auto space-y-4">
 
     <!-- ヘッダー -->
-    <header class="text-center mb-4">
-      <h1 class="text-2xl md:text-3xl font-bold text-indigo-900 mb-1">日経225 オプション価格計算</h1>
-      <p class="text-gray-500 text-xs">ブラック・ショールズ方程式による理論価格と損益シミュレーション</p>
+    <header class="text-center pt-1 pb-2">
+      <h1 class="text-xl font-bold text-indigo-900">日経225 オプション価格計算</h1>
+      <p class="text-gray-400 text-[11px] mt-0.5">B-S モデル ／ スタンドアロン動作</p>
     </header>
 
     <!-- グラフ（最上部・全幅） -->
     <section>
-      <div class="glass-panel p-4 rounded-2xl flex flex-col border border-gray-100 shadow-md">
-        <h2 class="text-base font-semibold mb-3 text-indigo-800 border-b pb-2">損益シミュレーション</h2>
-        <div class="relative w-full" style="height:300px;">
+      <div class="glass-panel p-3 rounded-2xl border border-gray-100 shadow-md">
+        <h2 class="text-sm font-semibold mb-2 text-indigo-800">📈 損益シミュレーション</h2>
+        <div class="relative w-full" style="height:220px;">
           <canvas id="optionChart"></canvas>
         </div>
-        <p class="text-[10px] text-gray-400 mt-2 text-center">※ブラウザ側で計算するためPCオフでも動作します。</p>
       </div>
     </section>
 
     <!-- 価格サマリー -->
     <section class="grid grid-cols-2 gap-3">
-      <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 text-center glass-panel">
-        <div class="text-xs text-blue-600 mb-0.5">コール価格 (C)</div>
-        <div class="text-2xl font-bold text-blue-900"><span id="call-price">---</span></div>
-        <div class="text-xs text-blue-500">円</div>
+      <div class="glass-panel bg-blue-50 py-4 rounded-2xl border border-blue-100 text-center">
+        <div class="text-[11px] text-blue-500 font-medium mb-1">コール (C)</div>
+        <div class="text-3xl font-bold text-blue-800"><span id="call-price">---</span></div>
+        <div class="text-[11px] text-blue-400 mt-0.5">円</div>
       </div>
-      <div class="bg-red-50 p-3 rounded-xl border border-red-100 text-center glass-panel">
-        <div class="text-xs text-red-600 mb-0.5">プット価格 (P)</div>
-        <div class="text-2xl font-bold text-red-900"><span id="put-price">---</span></div>
-        <div class="text-xs text-red-500">円</div>
+      <div class="glass-panel bg-red-50 py-4 rounded-2xl border border-red-100 text-center">
+        <div class="text-[11px] text-red-500 font-medium mb-1">プット (P)</div>
+        <div class="text-3xl font-bold text-red-800"><span id="put-price">---</span></div>
+        <div class="text-[11px] text-red-400 mt-0.5">円</div>
       </div>
     </section>
 
-    <!-- 行使価格別オプション価格テーブル -->
+    <!-- 行使価格別テーブル -->
     <section>
-      <div class="glass-panel p-4 rounded-2xl border border-gray-100 shadow-md">
-        <h2 class="text-base font-semibold mb-3 text-indigo-800 border-b pb-2">行使価格別 オプション価格一覧 <span class="text-xs font-normal text-gray-400">(現在値±3000 / 500円刻み)</span></h2>
+      <div class="glass-panel rounded-2xl border border-gray-100 shadow-md overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100">
+          <h2 class="text-sm font-semibold text-indigo-800">📋 行使価格別オプション価格</h2>
+          <p class="text-[10px] text-gray-400 mt-0.5">現在値 ±3000 ／ 500円刻み ／ ハイライト = 選択中 K</p>
+        </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-sm text-center">
+          <table class="w-full text-sm">
             <thead>
-              <tr class="bg-indigo-50 text-indigo-800">
-                <th class="py-2 px-3 font-semibold rounded-tl-lg">行使価格 (K)</th>
-                <th class="py-2 px-3 font-semibold text-blue-700">コール価格</th>
-                <th class="py-2 px-3 font-semibold text-red-700 rounded-tr-lg">プット価格</th>
+              <tr class="bg-indigo-50 text-xs">
+                <th class="py-2 px-4 text-left font-semibold text-indigo-700">行使価格</th>
+                <th class="py-2 px-4 text-right font-semibold text-blue-600">コール</th>
+                <th class="py-2 px-4 text-right font-semibold text-red-600">プット</th>
               </tr>
             </thead>
-            <tbody id="strike-table-body">
-            </tbody>
+            <tbody id="strike-table-body"></tbody>
           </table>
         </div>
       </div>
@@ -72,48 +86,57 @@
 
     <!-- パラメータ入力 -->
     <section>
-      <div class="glass-panel p-5 rounded-2xl border border-gray-100 shadow-md">
-        <h2 class="text-base font-semibold mb-3 text-indigo-800 border-b pb-2">パラメータ入力</h2>
-        <form id="bs-form" class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="S" class="block text-xs font-medium text-gray-500 mb-1">現在値 (S) [円]</label>
-            <input type="number" id="S" name="S" value="60000" step="10" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+      <div class="glass-panel p-4 rounded-2xl border border-gray-100 shadow-md">
+        <h2 class="text-sm font-semibold mb-3 text-indigo-800">⚙️ パラメータ入力</h2>
+        <form id="bs-form" class="space-y-3">
+          <!-- 現在値 & 行使価格 -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="S" class="block text-[11px] font-medium text-gray-500 mb-1">現在値 S [円]</label>
+              <input type="number" id="S" name="S" value="60000" step="10" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white">
+            </div>
+            <div>
+              <label for="K" class="block text-[11px] font-medium text-gray-500 mb-1">行使価格 K [円]</label>
+              <input type="number" id="K" name="K" value="59000" step="10" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white">
+            </div>
           </div>
-          <div>
-            <label for="K" class="block text-xs font-medium text-gray-500 mb-1">行使価格 (K) [円]</label>
-            <input type="number" id="K" name="K" value="59000" step="10" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+          <!-- 残存日数 & ボラティリティ -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="T_days" class="block text-[11px] font-medium text-gray-500 mb-1">残存日数 [日]</label>
+              <input type="number" id="T_days" name="T_days" value="3" step="1" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white">
+            </div>
+            <div>
+              <label for="sigma" class="block text-[11px] font-medium text-gray-500 mb-1">IV (σ) [%]</label>
+              <input type="number" id="sigma" name="sigma" value="20" step="0.1" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white">
+            </div>
           </div>
-          <div>
-            <label for="T_days" class="block text-xs font-medium text-gray-500 mb-1">残存日数 [日]</label>
-            <input type="number" id="T_days" name="T_days" value="3" step="1" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+          <!-- 金利 & グラフ範囲 -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="r" class="block text-[11px] font-medium text-gray-500 mb-1">金利 (r) [%]</label>
+              <input type="number" id="r" name="r" value="0.1" step="0.01" required
+                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors bg-white">
+            </div>
+            <div>
+              <label for="range_width" class="block text-[11px] font-semibold text-indigo-600 mb-1">グラフ範囲 (±円)</label>
+              <input type="number" id="range_width" name="range_width" value="3000" step="100" required
+                class="w-full px-3 py-2.5 border border-indigo-200 bg-indigo-50 rounded-xl text-base font-bold leading-snug focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors">
+            </div>
           </div>
-          <div>
-            <label for="sigma" class="block text-xs font-medium text-gray-500 mb-1">ボラティリティ (σ) [%]</label>
-            <input type="number" id="sigma" name="sigma" value="20" step="0.1" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-          </div>
-          <div>
-            <label for="r" class="block text-xs font-medium text-gray-500 mb-1">無リスク金利 (r) [%]</label>
-            <input type="number" id="r" name="r" value="0.1" step="0.01" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-          </div>
-          <div>
-            <label for="range_width" class="block text-xs font-semibold text-indigo-700 mb-1">グラフ範囲 (±円)</label>
-            <input type="number" id="range_width" name="range_width" value="3000" step="100" required
-              class="w-full px-3 py-2 border border-indigo-200 bg-indigo-50/20 rounded-lg text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
-          </div>
-          <div class="col-span-2">
-            <button type="submit"
-              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm shadow">
-              計算実行
-            </button>
-          </div>
+          <button type="submit"
+            class="w-full mt-1 bg-indigo-600 active:bg-indigo-800 text-white font-bold py-3 rounded-xl transition-colors text-base shadow-md">
+            計算実行
+          </button>
         </form>
       </div>
     </section>
+
+    <p class="text-center text-[10px] text-gray-300 pb-4">※ブラウザのみで計算。PCオフでも利用可能。</p>
 
   </div>
   <script src="./script.js"></script>

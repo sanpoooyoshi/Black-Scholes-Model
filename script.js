@@ -107,9 +107,9 @@ function renderStrikeTable(S_val, K_val, T, r, sigma) {
             : (k % 1000 === 0 ? 'bg-gray-50' : '');
         rows.push(`
             <tr class="${rowClass} border-t border-gray-100">
-                <td class="py-2 px-3">${k.toLocaleString('ja-JP')}</td>
-                <td class="py-2 px-3 text-blue-700">${p.call.toFixed(2)}</td>
-                <td class="py-2 px-3 text-red-700">${p.put.toFixed(2)}</td>
+                <td class="py-2.5 px-4 text-left font-mono text-sm">${k.toLocaleString('ja-JP')}</td>
+                <td class="py-2.5 px-4 text-right text-blue-700 font-semibold">${p.call.toFixed(2)}</td>
+                <td class="py-2.5 px-4 text-right text-red-700 font-semibold">${p.put.toFixed(2)}</td>
             </tr>
         `);
     }
