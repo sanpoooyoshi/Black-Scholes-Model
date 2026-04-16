@@ -2,11 +2,8 @@
  * 日経225 オプション価格計算 (ブラック・ショールズ・モデル) - スタンドアロン版
  */
 
-// --- ユーティリティ・数学関数 ---
-
 /**
  * 累積標準正規分布関数 (CDF) の近似計算
- * (Abramowitz and Stegun 26.2.17 近似)
  */
 function cumulativeNormalDistribution(x) {
     const b1 = 0.319381530;
@@ -29,93 +26,64 @@ function cumulativeNormalDistribution(x) {
 }
 
 /**
- * ブラック・ショールズ・モデルによるオプション価格計算
+ * ブラック・ショールズによるコール/プット価格計算
  */
 function calculateBlackScholes(S, K, T, r, sigma) {
     if (T <= 0) {
-        return {
-            call: Math.max(0, S - K),
-            put: Math.max(0, K - S)
-        };
+        return { call: Math.max(0, S - K), put: Math.max(0, K - S) };
     }
-    const d1 = (Math.log(S / K) + (r + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
+    const d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
     const d2 = d1 - sigma * Math.sqrt(T);
 
-    const Nd1 = cumulativeNormalDistribution(d1);
-    const Nd2 = cumulativeNormalDistribution(d2);
-    const Nd1_minus = cumulativeNormalDistribution(-d1);
-    const Nd2_minus = cumulativeNormalDistribution(-d2);
-
-    const callPrice = S * Nd1 - K * Math.exp(-r * T) * Nd2;
-    const putPrice = K * Math.exp(-r * T) * Nd2_minus - S * Nd1_minus;
-
-    return { call: callPrice, put: putPrice };
+    return {
+        call: S * cumulativeNormalDistribution(d1) - K * Math.exp(-r * T) * cumulativeNormalDistribution(d2),
+        put: K * Math.exp(-r * T) * cumulativeNormalDistribution(-d2) - S * cumulativeNormalDistribution(-d1)
+    };
 }
-
-// --- グラフ描画・UI更新処理 ---
 
 let optionChartInstance = null;
 
+/**
+ * 入力値を取得して計算とグラフを更新するメイン関数
+ */
 function updateCalculationAndChart() {
-    const S_val = parseFloat(document.getElementById('S').value);
-    const K_val = parseFloat(document.getElementById('K').value);
-    const T_days = parseFloat(document.getElementById('T_days').value);
+    const S_val    = parseFloat(document.getElementById('S').value);
+    const K_val    = parseFloat(document.getElementById('K').value);
+    const T_days   = parseFloat(document.getElementById('T_days').value);
     const sigma_pct = parseFloat(document.getElementById('sigma').value);
-    const r_pct = parseFloat(document.getElementById('r').value);
+    const r_pct    = parseFloat(document.getElementById('r').value);
 
     if (isNaN(S_val) || S_val <= 0 || isNaN(K_val) || K_val <= 0) return;
-    
-    const T = Math.max(0, T_days) / 365.0;
-    const sigma = Math.max(0.0001, sigma_pct) / 100.0;
-    const r = r_pct / 100.0;
 
+    const T     = Math.max(0, T_days) / 365.0;
+    const sigma = Math.max(0.0001, sigma_pct) / 100.0;
+    const r     = r_pct / 100.0;
+
+    // 現在価格の計算と表示
     const result = calculateBlackScholes(S_val, K_val, T, r, sigma);
     document.getElementById('call-price').textContent = result.call.toFixed(2);
-    document.getElementById('put-price').textContent = result.put.toFixed(2);
+    document.getElementById('put-price').textContent  = result.put.toFixed(2);
 
-    // 将来シミュレーション
-    const S_future = parseFloat(document.getElementById('S_future').value);
-    const T_days_future = parseFloat(document.getElementById('T_future').value);
-
-    if (!isNaN(S_future) && !isNaN(T_days_future)) {
-        const T_future = Math.max(0, T_days_future) / 365.0;
-        const futureResult = calculateBlackScholes(S_future, K_val, T_future, r, sigma);
-
-        document.getElementById('call-future-price').textContent = `将来: ${futureResult.call.toFixed(2)}`;
-        document.getElementById('put-future-price').textContent = `将来: ${futureResult.put.toFixed(2)}`;
-
-        const callPL = futureResult.call - result.call;
-        const putPL = futureResult.put - result.put;
-
-        const formatPL = (val, elId) => {
-            const el = document.getElementById(elId);
-            const prefix = val >= 0 ? '+' : '';
-            el.textContent = `${prefix}${val.toFixed(2)}`;
-            el.className = `text-xs font-black ${val >= 0 ? 'text-green-600' : 'text-red-600'}`;
-        };
-        formatPL(callPL, 'call-expected-pl');
-        formatPL(putPL, 'put-expected-pl');
-    }
-
-    // グラフ用データ
-    const range_width = parseFloat(document.getElementById('range_width').value) || 5000;
-    const rangeMin = Math.floor((S_val - range_width) / 100) * 100; 
+    // グラフ用データ生成
+    const range_width = parseFloat(document.getElementById('range_width').value) || 3000;
+    const rangeMin = Math.floor((S_val - range_width) / 100) * 100;
     const rangeMax = Math.ceil((S_val + range_width) / 100) * 100;
-    const step = Math.max(10, Math.floor((rangeMax - rangeMin) / 100)); 
+    const step     = Math.max(10, Math.floor((rangeMax - rangeMin) / 100));
 
-    const labels = [];
-    const callData = [];
-    const putData = [];
-
-    for (let currentS = rangeMin; currentS <= rangeMax; currentS += step) {
-        labels.push(currentS);
-        const resForPlot = calculateBlackScholes(currentS, K_val, T, r, sigma);
-        callData.push(resForPlot.call);
-        putData.push(resForPlot.put);
+    const labels = [], callData = [], putData = [];
+    for (let s = rangeMin; s <= rangeMax; s += step) {
+        labels.push(s);
+        const p = calculateBlackScholes(s, K_val, T, r, sigma);
+        callData.push(p.call);
+        putData.push(p.put);
     }
+
     renderChart(labels, callData, putData, S_val, step);
 }
 
+/**
+ * Chart.js によるグラフ描画
+ */
 function renderChart(labels, callData, putData, currentS, step) {
     const ctx = document.getElementById('optionChart').getContext('2d');
     if (optionChartInstance) optionChartInstance.destroy();
@@ -123,27 +91,27 @@ function renderChart(labels, callData, putData, currentS, step) {
     optionChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels,
             datasets: [
                 {
-                    label: 'コール価格',
+                    label: 'コール',
                     data: callData,
                     borderColor: 'rgba(59, 130, 246, 1)',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     borderWidth: 2,
                     pointRadius: 0,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 5,
                     tension: 0.3,
                     fill: false
                 },
                 {
-                    label: 'プット価格',
+                    label: 'プット',
                     data: putData,
                     borderColor: 'rgba(239, 68, 68, 1)',
                     backgroundColor: 'rgba(239, 68, 68, 0.1)',
                     borderWidth: 2,
                     pointRadius: 0,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 5,
                     tension: 0.3,
                     fill: false
                 }
@@ -156,7 +124,7 @@ function renderChart(labels, callData, putData, currentS, step) {
             plugins: {
                 tooltip: {
                     callbacks: {
-                        title: (items) => `原資産価格: ${items[0].label} 円`,
+                        title: (items) => `原資産: ${items[0].label} 円`,
                         label: (item) => `${item.dataset.label}: ${parseFloat(item.raw).toFixed(2)} 円`
                     }
                 },
@@ -166,12 +134,11 @@ function renderChart(labels, callData, putData, currentS, step) {
                 x: {
                     title: { display: true, text: '原資産価格 (円)' },
                     grid: {
-                        color: (context) => {
-                            const labelValue = parseFloat(context.tick.label);
-                            if (!isNaN(labelValue) && Math.abs(labelValue - currentS) <= step / 2) {
-                                return 'rgba(99, 102, 241, 0.5)';
-                            }
-                            return 'rgba(0,0,0,0.1)';
+                        color: (ctx) => {
+                            const v = parseFloat(ctx.tick.label);
+                            return !isNaN(v) && Math.abs(v - currentS) <= step / 2
+                                ? 'rgba(99, 102, 241, 0.5)'
+                                : 'rgba(0,0,0,0.1)';
                         }
                     }
                 },
@@ -204,12 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCalculationAndChart();
     const form = document.getElementById('bs-form');
     if (form) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            updateCalculationAndChart();
-        });
-        const inputs = form.querySelectorAll('input');
-        inputs.forEach(input => {
+        form.addEventListener('submit', (e) => { e.preventDefault(); updateCalculationAndChart(); });
+        form.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => updateCalculationAndChart());
         });
     }
