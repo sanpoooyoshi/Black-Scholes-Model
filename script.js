@@ -57,27 +57,29 @@ function updateCalculation() {
 }
 
 /**
- * 行使価格別オプション価格テーブルの描画
- * 現在値 ±3000 の範囲を 500 円刻みで表示（降順）
+ * 日経平均 (S) 別オプション価格テーブルの描画
+ * S を現在値±3000、500円刻みで変動（K 固定）、降順表示
  */
 function renderStrikeTable(S_val, K_val, T, r, sigma) {
     const tbody = document.getElementById('strike-table-body');
     if (!tbody) return;
 
-    const base = Math.round(S_val / 500) * 500;
+    const base = Math.round(S_val / 500) * 500; // 500円刻みに丸めた現在値
     const TABLE_RANGE = 3000, STEP = 500;
 
     const rows = [];
-    for (let k = base + TABLE_RANGE; k >= base - TABLE_RANGE; k -= STEP) {
-        const p = calculateBlackScholes(S_val, k, T, r, sigma);
-        const isSelected = Math.abs(k - K_val) < STEP / 2;
+    // S を高い順に変動（K は固定）
+    for (let s = base + TABLE_RANGE; s >= base - TABLE_RANGE; s -= STEP) {
+        const p = calculateBlackScholes(s, K_val, T, r, sigma);
+        // 現在値 S_val に最も近い行をハイライト
+        const isSelected = Math.abs(s - S_val) < STEP / 2;
         const rowBg = isSelected
             ? 'background:#e0e7ff;font-weight:700;'
-            : (k % 1000 === 0 ? 'background:#f9fafb;' : '');
+            : (s % 1000 === 0 ? 'background:#f9fafb;' : '');
         const cellBase = 'padding:10px 14px;border-top:1px solid #f0f0f0;font-size:14px;';
         rows.push(`
             <tr style="${rowBg}">
-                <td style="${cellBase}font-family:monospace;text-align:left;">${k.toLocaleString('ja-JP')}</td>
+                <td style="${cellBase}font-family:monospace;text-align:left;">${s.toLocaleString('ja-JP')}</td>
                 <td style="${cellBase}text-align:right;color:#1d4ed8;font-weight:600;">${p.call.toFixed(2)}</td>
                 <td style="${cellBase}text-align:right;color:#b91c1c;font-weight:600;">${p.put.toFixed(2)}</td>
             </tr>
