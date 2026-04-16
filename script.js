@@ -175,7 +175,7 @@ function renderChart(labels, callData, putData, currentS, step) {
                         }
                     }
                 },
-                y: { title: { display: true, text: '価格 (円)' }, beginAtZero: true }
+                y: { title: { display: true, text: '価格 (円)' }, beginAtZero: true, max: 1000 }
             }
         },
         plugins: [{
