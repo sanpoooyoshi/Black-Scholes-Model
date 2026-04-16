@@ -203,11 +203,65 @@ function renderChart(labels, callData, putData, currentS, step) {
     });
 }
 
+/**
+ * Yahoo Finance API から日経225先物 (NK=F) の最新価格を取得する
+ * CORS 対応のため、Yahoo Finance の chart エンドポイントを使用
+ * @returns {Promise<number|null>} 取得できた価格、または null
+ */
+async function fetchNikkeifutures() {
+    const btn = document.getElementById('calc-btn');
+    if (btn) {
+        btn.textContent = '取得中...';
+        btn.disabled = true;
+    }
+    try {
+        // Yahoo Finance 非公式 API（CORS 許可済み）
+        const url = 'https://query2.finance.yahoo.com/v8/finance/chart/NK=F?interval=1m&range=1d';
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        // 最新の終値または現在値を取得
+        const meta = data?.chart?.result?.[0]?.meta;
+        const price = meta?.regularMarketPrice ?? meta?.previousClose ?? null;
+        return price ? Math.round(price) : null;
+    } catch (e) {
+        console.warn('先物価格の取得に失敗しました:', e.message);
+        return null;
+    } finally {
+        if (btn) {
+            btn.textContent = '計算実行';
+            btn.disabled = false;
+        }
+    }
+}
+
+/**
+ * 価格表示バッジを更新する
+ */
+function setFetchBadge(text, color) {
+    let badge = document.getElementById('price-badge');
+    if (!badge) return;
+    badge.textContent = text;
+    badge.style.color = color;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateCalculationAndChart();
     const form = document.getElementById('bs-form');
     if (form) {
-        form.addEventListener('submit', (e) => { e.preventDefault(); updateCalculationAndChart(); });
+        // 送信時：先物価格の取得を試みてから計算実行
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const price = await fetchNikkeifutures();
+            if (price) {
+                document.getElementById('S').value = price;
+                setFetchBadge(`NK=F 取得: ${price.toLocaleString('ja-JP')} 円`, '#16a34a');
+            } else {
+                setFetchBadge('自動取得失敗 - 手動入力値で計算', '#dc2626');
+            }
+            updateCalculationAndChart();
+        });
+        // 入力変更時はリアルタイム計算（API 呼び出しなし）
         form.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => updateCalculationAndChart());
         });
