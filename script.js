@@ -32,35 +32,55 @@ function calculateBlackScholes(S, K, T, r, sigma) {
 }
 
 /**
- * 入力値を取得して計算と表示を更新するメイン関数
+ * スマイルカーブに基づくストライク別 IV の計算
+ * @param {number} K 行使価格
+ * @param {number} F 現在の原資産価格 (先物価格を代用)
+ * @param {number} atmIV ATMのボラティリティ (%)
+ * @param {number} skew 1次係数
+ * @param {number} conv 2次係数 (Convexity)
+ * @returns {number} 10進数の IV (例: 0.20)
  */
-function updateCalculation() {
-    const S_val    = parseFloat(document.getElementById('S').value);
-    const K_val    = parseFloat(document.getElementById('K').value);
-    const T_days   = parseFloat(document.getElementById('T_days').value);
-    const sigma_pct = parseFloat(document.getElementById('sigma').value);
-    const r_pct    = parseFloat(document.getElementById('r').value);
-
-    if (isNaN(S_val) || S_val <= 0 || isNaN(K_val) || K_val <= 0) return;
-
-    const T     = Math.max(0, T_days) / 365.0;
-    const sigma = Math.max(0.0001, sigma_pct) / 100.0;
-    const r     = r_pct / 100.0;
-
-    // 現在の行使価格での価格計算と表示
-    const result = calculateBlackScholes(S_val, K_val, T, r, sigma);
-    document.getElementById('call-price').textContent = result.call.toFixed(2);
-    document.getElementById('put-price').textContent  = result.put.toFixed(2);
-
-    // 行使価格テーブルの更新
-    renderStrikeTable(S_val, K_val, T, r, sigma);
+function calcSmileIV(K, F, atmIV, skew, conv) {
+    const x = Math.log(K / F);
+    let ivPct = atmIV + (skew * x) + (conv * x * x);
+    return Math.max(0.1, ivPct) / 100.0; // 最小0.1%を保証
 }
 
 /**
- * 日経平均 (S) 別オプション価格テーブルの描画
- * S を現在値±3000、500円刻みで変動（K 固定）、降順表示
+ * 入力値を取得して計算と表示を更新するメイン関数
  */
-function renderStrikeTable(S_val, K_val, T, r, sigma) {
+function updateCalculation() {
+    const S_val      = parseFloat(document.getElementById('S').value);
+    const K_val      = parseFloat(document.getElementById('K').value);
+    const T_days     = parseFloat(document.getElementById('T_days').value);
+    const sigma_atm  = parseFloat(document.getElementById('sigma_atm').value);
+    const skew       = parseFloat(document.getElementById('skew').value);
+    const convexity  = parseFloat(document.getElementById('convexity').value);
+    const r_pct      = parseFloat(document.getElementById('r').value);
+
+    // 要素が存在するか / 値が不正でないか簡易チェック
+    if (isNaN(S_val) || S_val <= 0 || isNaN(K_val) || K_val <= 0) return;
+
+    const T = Math.max(0, T_days) / 365.0;
+    const r = r_pct / 100.0;
+
+    // 現在の行使価格（K_val）専用の IV を計算
+    const local_sigma = calcSmileIV(K_val, S_val, sigma_atm, skew, convexity);
+
+    // K_val に対する価格計算と表示
+    const result = calculateBlackScholes(S_val, K_val, T, r, local_sigma);
+    document.getElementById('call-price').textContent = result.call.toFixed(2);
+    document.getElementById('put-price').textContent  = result.put.toFixed(2);
+
+    // ストライク別テーブルの更新
+    renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity);
+}
+
+/**
+ * ストライク別オプション価格テーブルの描画
+ * K を現在値±3000、500円刻みで変動（S 固定）、降順表示。スマイルカーブのIVを適用。
+ */
+function renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity) {
     const tbody = document.getElementById('strike-table-body');
     if (!tbody) return;
 
@@ -68,18 +88,24 @@ function renderStrikeTable(S_val, K_val, T, r, sigma) {
     const TABLE_RANGE = 3000, STEP = 500;
 
     const rows = [];
-    // S を高い順に変動（K は固定）
-    for (let s = base + TABLE_RANGE; s >= base - TABLE_RANGE; s -= STEP) {
-        const p = calculateBlackScholes(s, K_val, T, r, sigma);
-        // 現在値 S_val に最も近い行をハイライト
-        const isSelected = Math.abs(s - S_val) < STEP / 2;
+    // 行使価格（K）を高い順に変動
+    for (let k = base + TABLE_RANGE; k >= base - TABLE_RANGE; k -= STEP) {
+        // そのストライク専用のIVを算出してBSモデル適用
+        const local_sigma = calcSmileIV(k, S_val, sigma_atm, skew, convexity);
+        const p = calculateBlackScholes(S_val, k, T, r, local_sigma);
+        
+        // 選択された行使価格 K_val に最も近い行をハイライト
+        const isSelected = Math.abs(k - K_val) < STEP / 2;
         const rowBg = isSelected
             ? 'background:#e0e7ff;font-weight:700;'
-            : (s % 1000 === 0 ? 'background:#f9fafb;' : '');
+            : (k % 1000 === 0 ? 'background:#f9fafb;' : '');
         const cellBase = 'padding:10px 14px;border-top:1px solid #f0f0f0;font-size:14px;';
+        
+        const ivDisplay = (local_sigma * 100).toFixed(1);
         rows.push(`
             <tr style="${rowBg}">
-                <td style="${cellBase}font-family:monospace;text-align:left;">${s.toLocaleString('ja-JP')}</td>
+                <td style="${cellBase}font-family:monospace;text-align:left;">${k.toLocaleString('ja-JP')}</td>
+                <td style="${cellBase}text-align:right;color:#4b5563;">${ivDisplay}</td>
                 <td style="${cellBase}text-align:right;color:#1d4ed8;font-weight:600;">${p.call.toFixed(2)}</td>
                 <td style="${cellBase}text-align:right;color:#b91c1c;font-weight:600;">${p.put.toFixed(2)}</td>
             </tr>

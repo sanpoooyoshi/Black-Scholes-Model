@@ -52,14 +52,15 @@
     <section>
       <div class="glass-panel rounded-2xl border border-gray-100 shadow-md overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-100">
-          <h2 class="text-sm font-semibold text-indigo-800">📋 日経平均別オプション価格推移</h2>
-          <p class="text-[10px] text-gray-400 mt-0.5">現在値 ±3000 ／ 500円刻み ／ 行使価格 K 固定 ／ ハイライト = 現在値</p>
+          <h2 class="text-sm font-semibold text-indigo-800">📋 ストライク別 IV & オプション価格</h2>
+          <p class="text-[10px] text-gray-400 mt-0.5">現在値 ±3000 ／ 500円刻み ／ スマイルカーブ適用</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-indigo-50 text-xs">
-                <th class="py-2 px-4 text-left font-semibold text-indigo-700">日経平均 (S)</th>
+                <th class="py-2 px-4 text-left font-semibold text-indigo-700">行使価格 K</th>
+                <th class="py-2 px-3 text-right font-semibold text-gray-600">IV (%)</th>
                 <th class="py-2 px-4 text-right font-semibold text-blue-600">コール</th>
                 <th class="py-2 px-4 text-right font-semibold text-red-600">プット</th>
               </tr>
@@ -94,16 +95,30 @@
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
             </div>
             <div>
-              <label for="sigma" class="block text-[11px] font-medium text-gray-500 mb-1">IV (σ) [%]</label>
-              <input type="number" id="sigma" name="sigma" value="20" step="0.1" required
-                class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
               <label for="r" class="block text-[11px] font-medium text-gray-500 mb-1">金利 (r) [%]</label>
               <input type="number" id="r" name="r" value="0.1" step="0.01" required
                 class="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+            </div>
+          </div>
+          <!-- スマイルカーブ調整 -->
+          <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-3">
+            <h3 class="text-[11px] font-bold text-indigo-800">スマイルカーブ (IV) 設定</h3>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label for="sigma_atm" class="block text-[10px] font-medium text-gray-500 mb-1">ATM IV [%]</label>
+                <input type="number" id="sigma_atm" name="sigma_atm" value="20" step="0.1" required
+                  class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+              </div>
+              <div>
+                <label for="skew" class="block text-[10px] font-medium text-gray-500 mb-1">Skew 係数</label>
+                <input type="number" id="skew" name="skew" value="-20" step="1" required
+                  class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+              </div>
+              <div>
+                <label for="convexity" class="block text-[10px] font-medium text-gray-500 mb-1">Convexity</label>
+                <input type="number" id="convexity" name="convexity" value="100" step="1" required
+                  class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+              </div>
             </div>
           </div>
           <button type="submit" id="calc-btn"
