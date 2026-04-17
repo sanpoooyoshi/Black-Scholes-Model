@@ -88,10 +88,18 @@ function renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity) {
     const TABLE_RANGE = 3000, STEP = 500;
 
     const rows = [];
+    
+    // 現在の相場状況でのベースのIVを算出（これを基準とする）
+    const base_sigma = calcSmileIV(K_val, S_val, sigma_atm, skew, convexity);
+
     // 日経平均（S）を高い順に変動
     for (let s = base + TABLE_RANGE; s >= base - TABLE_RANGE; s -= STEP) {
-        // 固定の K_val と 変動する s に対応する専用のIVを算出
-        const local_sigma = calcSmileIV(K_val, s, sigma_atm, skew, convexity);
+        // 【プロ仕様の調整】日経平均が下がるほど市場パニックでIV全体が底上げされる仕様を再現
+        // 現在値より500円下がるごとに、約1%程度IVが跳ね上がる簡易モデルを加算
+        const drop_yen = S_val - s;
+        const panic_vol = drop_yen * 0.00002; // 1000円下落で +2% (0.02)
+        
+        const local_sigma = Math.max(0.01, base_sigma + panic_vol);
         const p = calculateBlackScholes(s, K_val, T, r, local_sigma);
         
         // 選択された現在値 S_val に最も近い行をハイライト
