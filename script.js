@@ -77,8 +77,8 @@ function updateCalculation() {
 }
 
 /**
- * 日経平均別オプション価格テーブルの描画
- * S を現在値±3000、500円刻みで変動（K 固定）、降順表示。スマイルカーブのIVを適用。
+ * ストライク別オプション価格テーブルの描画（オプションチェーン）
+ * S（現在値）は固定し、K（行使価格）を現在値±3000で変動させます。
  */
 function renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity) {
     const tbody = document.getElementById('strike-table-body');
@@ -88,23 +88,23 @@ function renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity) {
     const TABLE_RANGE = 3000, STEP = 500;
 
     const rows = [];
-    // 日経平均（S）を高い順に変動
-    for (let s = base + TABLE_RANGE; s >= base - TABLE_RANGE; s -= STEP) {
-        // 固定の K_val と 変動する s に対応する専用のIVを算出
-        const local_sigma = calcSmileIV(K_val, s, sigma_atm, skew, convexity);
-        const p = calculateBlackScholes(s, K_val, T, r, local_sigma);
+    // 行使価格（K）を高い順に変動
+    for (let k = base + TABLE_RANGE; k >= base - TABLE_RANGE; k -= STEP) {
+        // 固定の現在値 S_val と 変動する K に対応するIVを算出
+        const local_sigma = calcSmileIV(k, S_val, sigma_atm, skew, convexity);
+        const p = calculateBlackScholes(S_val, k, T, r, local_sigma);
         
-        // 選択された現在値 S_val に最も近い行をハイライト
-        const isSelected = Math.abs(s - S_val) < STEP / 2;
+        // 選択された行使価格 K_val に最も近い行をハイライト
+        const isSelected = Math.abs(k - K_val) < STEP / 2;
         const rowBg = isSelected
             ? 'background:#e0e7ff;font-weight:700;'
-            : (s % 1000 === 0 ? 'background:#f9fafb;' : '');
+            : (k % 1000 === 0 ? 'background:#f9fafb;' : '');
         const cellBase = 'padding:10px 14px;border-top:1px solid #f0f0f0;font-size:14px;';
         
         const ivDisplay = (local_sigma * 100).toFixed(1);
         rows.push(`
             <tr style="${rowBg}">
-                <td style="${cellBase}font-family:monospace;text-align:left;">${s.toLocaleString('ja-JP')}</td>
+                <td style="${cellBase}font-family:monospace;text-align:left;">${k.toLocaleString('ja-JP')}</td>
                 <td style="${cellBase}text-align:right;color:#4b5563;">${ivDisplay}</td>
                 <td style="${cellBase}text-align:right;color:#1d4ed8;font-weight:600;">${p.call.toFixed(2)}</td>
                 <td style="${cellBase}text-align:right;color:#b91c1c;font-weight:600;">${p.put.toFixed(2)}</td>
