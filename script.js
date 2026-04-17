@@ -114,53 +114,12 @@ function renderStrikeTable(S_val, K_val, T, r, sigma_atm, skew, convexity) {
     tbody.innerHTML = rows.join('');
 }
 
-/**
- * Yahoo Finance API から日経225先物 (NK=F) の最新価格を取得する
- */
-async function fetchNikkeiFutures() {
-    const btn = document.getElementById('calc-btn');
-    if (btn) { btn.textContent = '取得中...'; btn.disabled = true; }
-    try {
-        const url = 'https://query2.finance.yahoo.com/v8/finance/chart/NK=F?interval=1m&range=1d';
-        const res = await fetch(url, { mode: 'cors' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const meta  = data?.chart?.result?.[0]?.meta;
-        const price = meta?.regularMarketPrice ?? meta?.previousClose ?? null;
-        return price ? Math.round(price) : null;
-    } catch (e) {
-        console.warn('先物価格の取得に失敗:', e.message);
-        return null;
-    } finally {
-        if (btn) { btn.textContent = '計算実行（先物価格を自動取得）'; btn.disabled = false; }
-    }
-}
-
-/**
- * 取得結果バッジの更新
- */
-function setFetchBadge(text, color) {
-    const badge = document.getElementById('price-badge');
-    if (badge) { badge.textContent = text; badge.style.color = color; }
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCalculation();
     const form = document.getElementById('bs-form');
     if (form) {
-        // 計算実行ボタン: 先物価格取得 → 計算
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const price = await fetchNikkeiFutures();
-            if (price) {
-                document.getElementById('S').value = price;
-                setFetchBadge(`NK=F 取得: ${price.toLocaleString('ja-JP')} 円`, '#16a34a');
-            } else {
-                setFetchBadge('自動取得失敗 - 手動入力値で計算', '#dc2626');
-            }
-            updateCalculation();
-        });
-        // 入力変更時はリアルタイム計算（API 呼び出しなし）
+        // 入力変更時にリアルタイムで計算を実行
         form.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => updateCalculation());
         });
